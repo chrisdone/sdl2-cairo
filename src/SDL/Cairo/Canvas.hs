@@ -62,11 +62,11 @@ module SDL.Cairo.Canvas (
   -- * Images
   Image(imageSize), createImage, loadImagePNG, saveImagePNG, image, image', blend, grab,
   -- * Text
-  Font(..), textFont, textSize, text, textC, textR,
+  Font(..), textFont, textSize, text, textC, textR, textBaseline, fontExtents,
   -- * Math
   mapRange, radians, degrees,
   -- * Misc
-  randomSeed, random, getTime, Time(..),
+  randomSeed, random, getTime, Time(..), C.FontExtents (..),
   module Graphics.Rendering.Cairo
 ) where
 
@@ -439,6 +439,13 @@ textSize s = gets csSurface >>= \cs -> do
   (C.TextExtents _ _ w h _ _) <- C.renderWith cs $ setFont font >> C.textExtents s
   return $ V2 w h
 
+-- | get the size of the text when rendered in current font
+fontExtents :: Canvas C.FontExtents
+fontExtents =
+  gets csSurface >>= \cs -> do
+    font <- gets csFont
+    C.renderWith cs $ setFont font >> C.fontExtents
+
 -- | render text left-aligned (coordinate is top-left corner)
 text :: String -> V2 Double -> Canvas ()
 text str (V2 x y) = ifColor csFG $ \c -> do
@@ -459,6 +466,13 @@ textC str (V2 x y) = do
   (V2 w h) <- textSize str
   text str $ V2 (x-(w/2)) (y-(h/2))
 
+-- | render text left-aligned (coordinate is bottom-left corner)
+textBaseline :: String -> V2 Double -> Canvas ()
+textBaseline str (V2 x y) = ifColor csFG $ \c -> do
+  (C.TextExtents _ yb _ h _ _) <- C.textExtents str
+  setColor c
+  C.moveTo x (y)
+  C.showText str
 
 -- helpers --
 
@@ -542,4 +556,3 @@ setFont (Font face sz bold italic) = do
                    (if italic then C.FontSlantItalic else C.FontSlantNormal)
                    (if bold then C.FontWeightBold else C.FontWeightNormal)
   C.setFontSize sz
-
